@@ -20,8 +20,8 @@ services:
       RAILS_MASTER_KEY: 84ec93b5f81d27f8fdf7fc71d7b28e15
     hostname: api1
     depends_on:
-      - postgres
-      - redis
+    - postgres
+    - redis
     network_mode: host
     deploy:
       resources:
@@ -81,10 +81,10 @@ services:
     image: docker.io/nginx:latest
     command: ["nginx", "-g", "daemon off;"]
     volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    - ./nginx.conf:/etc/nginx/nginx.conf:ro
     depends_on:
-      - api1
-      - api2
+    - api1
+    - api2
     ulimits:
       nproc: 1000000
       nofile:
@@ -105,9 +105,9 @@ services:
       POSTGRES_PASSWORD: password
     command: postgres -c 'max_connections=450'
     volumes:
-      - ./postgresql.conf:/docker-entrypoint-initdb.d/postgresql.conf
+    - ./postgresql.conf:/docker-entrypoint-initdb.d/postgresql.conf
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready"]
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s
       timeout: 5s
       retries: 20
