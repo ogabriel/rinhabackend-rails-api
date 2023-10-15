@@ -2,8 +2,7 @@ class PessoasController < ApplicationController
   JSON_FIELDS = %i[id apelido nome nascimento stack].freeze
   CACHE_EXPIRES = ENV.fetch('CACHE_EXPIRES_SECONDS', 2).to_i.seconds
 
-  before_action :set_pessoa, only: %i[show update destroy]
-  before_action :validate_params, only: %i[create update]
+  before_action :validate_params, only: %i[create]
 
   # GET /pessoas?t=query
   def index
@@ -22,11 +21,12 @@ class PessoasController < ApplicationController
 
   # GET /pessoas/1
   def show
-    if @pessoa
-      # HTTP caching
-      #  - no need here because the stress test don't call the same URL twice
-      # fresh_when @pessoa
-      render json: @pessoa, only: JSON_FIELDS
+    pessoa = Rails.cache.fetch("p/#{params[:id]}", expires_in: CACHE_EXPIRES) do
+      Pessoa.find_by(id: params[:id])
+    end
+
+    if pessoa.present?
+      render json: pessoa, only: JSON_FIELDS
     else
       head :not_found
     end
@@ -65,29 +65,7 @@ class PessoasController < ApplicationController
     end
   end
 
-  # PATCH/PUT /pessoas/1
-  def update
-    if @pessoa.valid?
-      PessoaJob.perform_async(:update, pessoa_params.merge(id: params[:id]).to_h)
-      head :ok
-    else
-      head :unprocessable_entity
-    end
-  end
-
-  # DELETE /pessoas/1
-  def destroy
-    @pessoa.destroy
-  end
-
   private
-
-  # Use callbacks to share common setup or constraints between actions.
-  def set_pessoa
-    @pessoa = Rails.cache.fetch("p/#{params[:id]}", expires_in: CACHE_EXPIRES) do
-      Pessoa.find_by(id: params[:id])
-    end
-  end
 
   # Only allow a list of trusted parameters through.
   def pessoa_params
